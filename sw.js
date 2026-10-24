@@ -3,7 +3,7 @@
  * Cache de arquivos estáticos e suporte a uso offline
  */
 
-const CACHE_NAME = 'aura-clima-v9';
+const CACHE_NAME = 'aura-clima-v10';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -40,7 +40,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Para requisições de mapas, rotas (OSRM) e APIs meteorológicas, sempre busca na rede
+  // Para requisições de mapas, rotas (OSRM), redes de anúncios CPM e APIs meteorológicas, sempre busca na rede
   if (
     event.request.url.includes('open-meteo.com') ||
     event.request.url.includes('bigdatacloud.net') ||
@@ -48,7 +48,11 @@ self.addEventListener('fetch', (event) => {
     event.request.url.includes('openstreetmap.org') ||
     event.request.url.includes('arcgisonline.com') ||
     event.request.url.includes('project-osrm.org') ||
-    event.request.url.includes('unpkg.com')
+    event.request.url.includes('unpkg.com') ||
+    event.request.url.includes('monetag.com') ||
+    event.request.url.includes('alwingulla.com') ||
+    event.request.url.includes('adsterra.com') ||
+    event.request.url.includes('topcreativeformat.com')
   ) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))
