@@ -638,6 +638,22 @@
         </div>
       </div>
 
+      <!-- Mapa Interativo da Rota (Em destaque) -->
+      <div class="glass-panel p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+            <i data-lucide="map" class="w-4 h-4 text-sky-400"></i>
+            <span>Visualização da Rota no Mapa</span>
+          </div>
+          <div class="flex items-center gap-2 text-[11px] text-slate-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span>Sem chaves de API necessárias (Leaflet 100% Livre)</span>
+          </div>
+        </div>
+        
+        <div id="route-map" class="w-full rounded-2xl overflow-hidden border border-white/10 relative z-10" style="height: 440px; min-height: 440px;"></div>
+      </div>
+
       <!-- Resumo da Rota & Comparativo de Clima -->
       <div id="route-summary-panel" class="hidden glass-panel p-5 sm:p-6 flex flex-col gap-5">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-white/10">
@@ -695,19 +711,6 @@
           </div>
         </div>
 
-      </div>
-
-      <!-- Mapa Interativo da Rota -->
-      <div class="glass-panel p-4 flex flex-col gap-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
-            <i data-lucide="map" class="w-4 h-4 text-sky-400"></i>
-            <span>Visualização da Rota no Mapa</span>
-          </div>
-          <span class="text-xs text-slate-400">Mapa interativo com zoom</span>
-        </div>
-        
-        <div id="route-map" class="w-full h-80 sm:h-96 rounded-2xl overflow-hidden border border-white/10 relative z-10"></div>
       </div>
 
     </div> <!-- Fim de view-route-dashboard -->

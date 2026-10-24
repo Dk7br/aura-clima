@@ -372,8 +372,14 @@ h1, h2, h3, .font-heading {
    Estilos do Mapa Leaflet e Marcadores de Rota
    -------------------------------------------------------------------------- */
 #route-map {
+  height: 420px !important;
+  min-height: 420px !important;
+  width: 100% !important;
+  display: block !important;
   background: #0b111e;
   border-radius: 1rem;
+  position: relative;
+  z-index: 10;
 }
 
 .leaflet-container {

@@ -54,8 +54,10 @@ const RoutePlanner = {
         viewWeather.classList.add('hidden');
         viewRoute.classList.remove('hidden');
 
-        // Inicializa o mapa Leaflet no primeiro clique
-        this.initMap();
+        // Garante que o container esteja renderizado antes de calcular o tamanho do Leaflet
+        setTimeout(() => {
+          this.initMap();
+        }, 150);
       });
     }
 
@@ -235,18 +237,52 @@ const RoutePlanner = {
   },
 
   /**
-   * Inicializa o mapa Leaflet com tema noturno elegante
+   * Inicializa o mapa Leaflet com suporte a múltiplos provedores e sem necessidade de API key
    */
   initMap() {
-    if (this.map) {
-      this.map.invalidateSize();
-      return;
-    }
-
     const mapContainer = document.getElementById('route-map');
     if (!mapContainer) return;
 
-    // Coordenadas iniciais (São Paulo / Brasil)
+    if (typeof L === 'undefined') {
+      console.warn('Leaflet ainda carregando...');
+      setTimeout(() => this.initMap(), 250);
+      return;
+    }
+
+    if (mapContainer._leaflet_id && !this.map) {
+      mapContainer._leaflet_id = null;
+    }
+
+    // Se a origem ainda não estiver preenchida, usa a cidade atual do Aura Clima ou IP
+    if (!this.origin) {
+      if (typeof AppState !== 'undefined' && AppState.currentCity) {
+        this.origin = AppState.currentCity;
+      } else {
+        this.origin = { name: 'São Paulo', state: 'São Paulo', country: 'Brasil', latitude: -23.5475, longitude: -46.6361 };
+      }
+      const originInput = document.getElementById('route-origin-input');
+      if (originInput) originInput.value = `${this.origin.name}, ${this.origin.state || this.origin.country}`;
+    }
+
+    // Se o destino não estiver preenchido, sugere uma rota padrão para já traçar no mapa
+    if (!this.destination) {
+      if (this.origin.name.toLowerCase().includes('rio')) {
+        this.destination = { name: 'São Paulo', state: 'São Paulo', country: 'Brasil', latitude: -23.5475, longitude: -46.6361 };
+      } else {
+        this.destination = { name: 'Rio de Janeiro', state: 'Rio de Janeiro', country: 'Brasil', latitude: -22.9064, longitude: -43.1822 };
+      }
+      const destInput = document.getElementById('route-dest-input');
+      if (destInput) destInput.value = `${this.destination.name}, ${this.destination.state || this.destination.country}`;
+    }
+
+    if (this.map) {
+      setTimeout(() => {
+        this.map.invalidateSize();
+        this.renderRouteOnMap();
+      }, 100);
+      return;
+    }
+
     const initialLat = this.origin?.latitude || -23.5475;
     const initialLon = this.origin?.longitude || -46.6361;
 
@@ -255,16 +291,38 @@ const RoutePlanner = {
       attributionControl: false
     }).setView([initialLat, initialLon], 7);
 
-    // Tiles Dark Matter do CartoDB (elegantes e perfeitos com glassmorphism)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Provedor 1: CartoDB Dark Matter (tema escuro perfeito para o app)
+    const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       subdomains: 'abcd'
-    }).addTo(this.map);
+    });
 
+    // Provedor 2: OpenStreetMap Padrão
+    const osmTiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    });
+
+    // Provedor 3: Satélite de Alta Resolução (ESRI)
+    const satelliteTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 18
+    });
+
+    darkTiles.addTo(this.map);
+
+    // Controle de Zoom
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-    // Se já tivermos origem ou destino selecionados, atualiza
-    this.updateRouteIfReady();
+    // Controle de Camadas para o usuário alternar livremente
+    L.control.layers({
+      '🌙 Escuro': darkTiles,
+      '🗺️ Ruas': osmTiles,
+      '🛰️ Satélite': satelliteTiles
+    }, null, { position: 'topright' }).addTo(this.map);
+
+    setTimeout(() => {
+      this.map.invalidateSize();
+      this.updateRouteIfReady();
+    }, 200);
   },
 
   /**
@@ -301,7 +359,7 @@ const RoutePlanner = {
   },
 
   /**
-   * Desenha marcadores e a linha de rota no mapa Leaflet
+   * Desenha marcadores com SVGs nativos e linha de rota com brilho neon
    */
   renderRouteOnMap() {
     if (!this.map || !this.origin || !this.destination) return;
@@ -311,39 +369,39 @@ const RoutePlanner = {
     if (this.destMarker) this.map.removeLayer(this.destMarker);
     if (this.routePolyline) this.map.removeLayer(this.routePolyline);
 
-    // Ícone verde de Partida
+    // Ícone verde de Partida com SVG embutido
     const originIcon = L.divIcon({
       className: 'custom-map-marker',
       html: `
-        <div class="w-8 h-8 rounded-full bg-emerald-500 border-2 border-white shadow-lg flex items-center justify-center text-white">
-          <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+        <div style="background:#10b981;border:2px solid #ffffff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(16,185,129,0.5)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
         </div>
       `,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16]
+      iconSize: [34, 34],
+      iconAnchor: [17, 17]
     });
 
-    // Ícone vermelho de Chegada
+    // Ícone vermelho de Chegada com SVG embutido
     const destIcon = L.divIcon({
       className: 'custom-map-marker',
       html: `
-        <div class="w-8 h-8 rounded-full bg-rose-500 border-2 border-white shadow-lg flex items-center justify-center text-white">
-          <i data-lucide="map-pin" class="w-4 h-4 fill-white"></i>
+        <div style="background:#f43f5e;border:2px solid #ffffff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(244,63,94,0.5)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
         </div>
       `,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16]
+      iconSize: [34, 34],
+      iconAnchor: [17, 17]
     });
 
     this.originMarker = L.marker([this.origin.latitude, this.origin.longitude], { icon: originIcon })
-      .bindPopup(`<b>Partida:</b> ${this.origin.name}`)
+      .bindPopup(`<div style="font-family:sans-serif;font-size:12px;padding:2px"><b>Partida:</b> ${this.origin.name}</div>`)
       .addTo(this.map);
 
     this.destMarker = L.marker([this.destination.latitude, this.destination.longitude], { icon: destIcon })
-      .bindPopup(`<b>Destino:</b> ${this.destination.name}`)
+      .bindPopup(`<div style="font-family:sans-serif;font-size:12px;padding:2px"><b>Destino:</b> ${this.destination.name}</div>`)
       .addTo(this.map);
 
-    // Linha de rota com gradiente azul neon
+    // Traçado da rota
     const points = [
       [this.origin.latitude, this.origin.longitude],
       [this.destination.latitude, this.destination.longitude]
@@ -351,13 +409,17 @@ const RoutePlanner = {
 
     this.routePolyline = L.polyline(points, {
       color: '#38bdf8',
-      weight: 5,
-      opacity: 0.85,
-      dashArray: '8, 8'
+      weight: 6,
+      opacity: 0.95
     }).addTo(this.map);
 
-    // Ajusta o zoom para enquadrar a rota inteira
-    this.map.fitBounds(this.routePolyline.getBounds(), { padding: [50, 50] });
+    setTimeout(() => {
+      if (this.map && this.routePolyline) {
+        this.map.invalidateSize();
+        this.map.fitBounds(this.routePolyline.getBounds(), { padding: [60, 60], maxZoom: 12 });
+      }
+    }, 150);
+  },
 
     lucide.createIcons();
   },
