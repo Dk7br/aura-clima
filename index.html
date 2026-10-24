@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aura Clima | Previsão do Tempo em Tempo Real</title>
+  
+  <!-- Fontes do Google -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+            heading: ['Outfit', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Estilos Customizados & Glassmorphism -->
+  <link rel="stylesheet" href="css/style.css" />
+  
+  <!-- Suporte a PWA -->
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0ea5e9" />
+</head>
+<body class="antialiased min-h-screen text-slate-100 flex flex-col justify-between selection:bg-sky-500/30 selection:text-sky-200">
+
+  <!-- Fundo Dinâmico com Camada e Partículas -->
+  <div id="ambient-bg" class="bg-ambient-layer theme-clear-day"></div>
+  <canvas id="ambient-canvas"></canvas>
+
+  <!-- Container Principal -->
+  <div class="relative z-10 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 flex flex-col">
+
+    <!-- Topbar / Cabeçalho -->
+    <header class="flex flex-col md:flex-row items-center justify-between gap-4 pb-6">
+      
+      <!-- Marca / Logo -->
+      <div class="flex items-center gap-3 select-none">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-500 p-0.5 shadow-lg shadow-sky-500/20">
+          <div class="w-full h-full bg-slate-950/40 rounded-[14px] flex items-center justify-center backdrop-blur-sm">
+            <i data-lucide="cloud-sun" class="w-6 h-6 text-sky-300"></i>
+          </div>
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight font-heading flex items-center gap-1.5">
+            Aura <span class="bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-indigo-300 font-extrabold">Clima</span>
+          </h1>
+          <p class="text-[11px] text-slate-400 font-medium tracking-wide">METEOROLOGIA EM TEMPO REAL</p>
+        </div>
+      </div>
+
+      <!-- Barra de Pesquisa e Ações Rápidas -->
+      <div class="flex items-center gap-2.5 w-full md:w-auto flex-1 md:max-w-md justify-end">
+        
+        <!-- Campo de Pesquisa com Autocomplete -->
+        <div class="relative flex-1">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Buscar cidade ou país..."
+              autocomplete="off"
+              class="w-full pl-10 pr-4 py-2.5 rounded-2xl glass-input text-sm text-white placeholder-slate-400 focus:outline-none transition-all duration-200"
+            />
+          </div>
+
+          <!-- Dropdown de Resultados da Pesquisa -->
+          <div
+            id="search-results"
+            class="hidden absolute top-full left-0 right-0 mt-2 rounded-2xl glass-panel overflow-hidden shadow-2xl z-50 max-h-72 overflow-y-auto"
+          ></div>
+        </div>
+
+        <!-- Botão de Minha Localização (GPS) -->
+        <button
+          id="btn-geolocation"
+          title="Usar minha localização atual"
+          class="glass-card glass-card-hover p-2.5 rounded-2xl text-slate-300 hover:text-sky-300 flex items-center justify-center flex-shrink-0"
+        >
+          <i data-lucide="crosshair" class="w-5 h-5"></i>
+        </button>
+
+        <!-- Botão de Alternar Unidade (°C / °F) -->
+        <button
+          id="btn-unit-toggle"
+          title="Alternar entre Celsius e Fahrenheit"
+          class="glass-card glass-card-hover px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-200 hover:text-sky-300 flex items-center gap-1 flex-shrink-0 tracking-wider"
+        >
+          <span id="unit-label">°C</span>
+        </button>
+
+      </div>
+    </header>
+
+    <!-- Barra de Cidades Favoritas -->
+    <section class="mb-6 flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
+      <div class="flex items-center gap-1.5 text-xs text-slate-400 font-semibold uppercase tracking-wider pl-1 pr-2 flex-shrink-0">
+        <i data-lucide="bookmark" class="w-3.5 h-3.5 text-sky-400"></i>
+        <span>Favoritos:</span>
+      </div>
+      <div id="favorites-list" class="flex items-center gap-2 flex-nowrap">
+        <!-- Pílulas de Favoritos geradas via JS -->
+      </div>
+    </section>
+
+    <!-- Dashboard Principal -->
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+      
+      <!-- Coluna Esquerda: Hero Card + Previsão Horária (7 Colunas) -->
+      <div class="lg:col-span-7 flex flex-col gap-6">
+        
+        <!-- Banner de Alerta Meteorológico (Dinâmico) -->
+        <div id="weather-alert-banner" class="hidden alert-banner p-4 flex items-center gap-3.5">
+          <div id="alert-icon-wrap" class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-500/20 text-amber-300">
+            <i id="alert-icon" data-lucide="alert-triangle" class="w-5 h-5"></i>
+          </div>
+          <div class="flex-1">
+            <h4 id="alert-title" class="text-xs font-bold uppercase tracking-wider text-white">Alerta Climático</h4>
+            <p id="alert-message" class="text-xs text-slate-200 mt-0.5">Mensagem do alerta</p>
+          </div>
+        </div>
+
+        <!-- Card Hero de Clima Atual -->
+        <div id="hero-card" class="glass-panel p-6 sm:p-8 relative overflow-hidden flex flex-col justify-between min-h-[320px]">
+          
+          <!-- Cabeçalho do Card: Cidade, País e Botão de Favorito -->
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 id="city-name" class="text-2xl sm:text-4xl font-extrabold text-white font-heading tracking-tight">
+                  Carregando...
+                </h2>
+                <button
+                  id="btn-toggle-favorite"
+                  title="Salvar nos Favoritos"
+                  class="glass-pill p-2 text-slate-400 hover:text-amber-400 transition-colors"
+                >
+                  <i data-lucide="star" class="w-5 h-5"></i>
+                </button>
+              </div>
+              <p id="city-location" class="text-sm sm:text-base text-slate-300 mt-1 font-medium flex items-center gap-1.5">
+                Localizando...
+              </p>
+              <p id="current-date" class="text-xs text-slate-400 mt-0.5 capitalize">
+                --
+              </p>
+            </div>
+
+            <!-- Ícone Principal Flutuante com Efeito Glow -->
+            <div id="hero-weather-icon" class="flex-shrink-0">
+              <i data-lucide="sun" class="w-20 h-20 text-amber-300 sun-glow animate-float"></i>
+            </div>
+          </div>
+
+          <!-- Seção de Temperatura e Condição -->
+          <div class="mt-8 pt-4 border-t border-white/5 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div class="flex items-baseline gap-2">
+                <span id="current-temp" class="text-6xl sm:text-8xl font-black font-heading tracking-tighter text-white">
+                  --°
+                </span>
+                <span class="text-slate-400 text-lg font-medium">atual</span>
+              </div>
+              <div class="flex items-center gap-2 mt-1">
+                <span id="weather-condition" class="text-base sm:text-lg font-semibold text-sky-200">
+                  Aguardando dados...
+                </span>
+              </div>
+            </div>
+
+            <!-- Mínima, Máxima e Sensação Térmica -->
+            <div class="flex flex-col items-end gap-1.5 text-right">
+              <div class="flex items-center gap-2 text-sm font-semibold">
+                <span class="text-rose-400 flex items-center gap-0.5">
+                  <i data-lucide="arrow-up" class="w-3.5 h-3.5"></i>
+                  <span id="temp-max">--°</span>
+                </span>
+                <span class="text-slate-500">•</span>
+                <span class="text-sky-400 flex items-center gap-0.5">
+                  <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
+                  <span id="temp-min">--°</span>
+                </span>
+              </div>
+              <p class="text-xs text-slate-400">
+                Sensação térmica de <strong id="apparent-temp" class="text-slate-200 font-bold">--°</strong>
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Card de Previsão Horária (Próximas 24 Horas) -->
+        <div class="glass-panel p-5 sm:p-6 flex flex-col">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <i data-lucide="clock" class="w-4 h-4 text-sky-400"></i>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300">Previsão Horária (24h)</h3>
+            </div>
+            
+            <!-- Controle Segmentado: Cards vs Gráfico -->
+            <div class="segmented-control">
+              <button id="btn-view-cards" class="segmented-btn active flex items-center gap-1.5">
+                <i data-lucide="layout-grid" class="w-3 h-3"></i>
+                <span>Cards</span>
+              </button>
+              <button id="btn-view-chart" class="segmented-btn flex items-center gap-1.5">
+                <i data-lucide="line-chart" class="w-3 h-3"></i>
+                <span>Gráfico</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Carrossel de Horas com rolagem suave (Modo Cards) -->
+          <div
+            id="hourly-forecast-list"
+            class="flex items-center gap-3 overflow-x-auto pb-2 snap-x custom-scrollbar"
+          >
+            <!-- Preenchido dinamicamente via JS -->
+          </div>
+
+          <!-- Gráfico SVG Interativo de Tendência Térmica (Modo Gráfico) -->
+          <div id="hourly-chart-view" class="hidden hourly-chart-container custom-scrollbar pt-2">
+            <!-- Gerado dinamicamente via JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Coluna Direita: Métricas Detalhadas do Clima (5 Colunas) -->
+      <div class="lg:col-span-5 flex flex-col gap-6">
+
+        <!-- Grid de Cards de Destaque -->
+        <div class="grid grid-cols-2 gap-4">
+          
+          <!-- Card 1: Vento -->
+          <div class="glass-card glass-card-hover p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="wind" class="w-3.5 h-3.5 text-sky-400"></i>
+                Vento
+              </span>
+              <div id="compass-needle" class="compass-arrow text-sky-400">
+                <i data-lucide="navigation" class="w-3.5 h-3.5"></i>
+              </div>
+            </div>
+            <div>
+              <p id="wind-speed" class="text-2xl font-bold font-heading text-white">-- km/h</p>
+              <p id="wind-dir-text" class="text-[11px] text-slate-400 mt-1 truncate">Direção --</p>
+            </div>
+          </div>
+
+          <!-- Card 2: Umidade -->
+          <div class="glass-card glass-card-hover p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="droplets" class="w-3.5 h-3.5 text-sky-400"></i>
+                Umidade
+              </span>
+            </div>
+            <div>
+              <p id="humidity-val" class="text-2xl font-bold font-heading text-white">--%</p>
+              <div class="w-full bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="humidity-bar" class="bg-sky-400 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+              <p id="humidity-desc" class="text-[11px] text-slate-400 mt-1 truncate">Calculando...</p>
+            </div>
+          </div>
+
+          <!-- Card 3: Índice UV -->
+          <div class="glass-card glass-card-hover p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="sun-medium" class="w-3.5 h-3.5 text-amber-400"></i>
+                Índice UV
+              </span>
+              <span id="uv-badge" class="text-xs px-2 py-0.5 rounded-full font-semibold border bg-slate-800 text-slate-400 border-slate-700">--</span>
+            </div>
+            <div>
+              <p id="uv-val" class="text-2xl font-bold font-heading text-white">--</p>
+              <p id="uv-desc" class="text-[11px] text-slate-400 mt-1 truncate">--</p>
+            </div>
+          </div>
+
+          <!-- Card 4: Qualidade do Ar -->
+          <div class="glass-card glass-card-hover p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i>
+                Ar (AQI)
+              </span>
+              <span id="aqi-badge" class="text-xs px-2 py-0.5 rounded-full font-semibold border bg-slate-800 text-slate-400 border-slate-700">--</span>
+            </div>
+            <div>
+              <p id="aqi-val" class="text-2xl font-bold font-heading text-white">--</p>
+              <p id="aqi-desc" class="text-[11px] text-slate-400 mt-1 truncate">Monitoramento local</p>
+            </div>
+          </div>
+
+          <!-- Card 5: Chance de Chuva -->
+          <div class="glass-card glass-card-hover p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="cloud-rain" class="w-3.5 h-3.5 text-sky-400"></i>
+                Chuva Hoje
+              </span>
+            </div>
+            <div>
+              <p id="rain-chance-val" class="text-2xl font-bold font-heading text-white">--%</p>
+              <div class="w-full bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="rain-chance-bar" class="bg-blue-400 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1 truncate">Probabilidade máxima</p>
+            </div>
+          </div>
+
+          <!-- Card 6: Pressão Atmosférica -->
+          <div class="glass-card glass-card-hover p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="gauge" class="w-3.5 h-3.5 text-indigo-400"></i>
+                Pressão
+              </span>
+            </div>
+            <div>
+              <p id="pressure-val" class="text-2xl font-bold font-heading text-white">-- hPa</p>
+              <p class="text-[11px] text-slate-400 mt-1 truncate">Nível da superfície</p>
+            </div>
+          </div>
+
+          <!-- Card 7: Visibilidade & Orvalho -->
+          <div class="glass-card glass-card-hover p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="eye" class="w-3.5 h-3.5 text-teal-400"></i>
+                Visibilidade
+              </span>
+            </div>
+            <div>
+              <p id="visibility-val" class="text-2xl font-bold font-heading text-white">-- km</p>
+              <p id="dewpoint-val" class="text-[11px] text-slate-400 mt-1 truncate">Orvalho: --°</p>
+            </div>
+          </div>
+
+          <!-- Card 8: Fase Lunar -->
+          <div class="glass-card glass-card-hover p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="moon" class="w-3.5 h-3.5 text-indigo-300"></i>
+                Fase da Lua
+              </span>
+              <div id="moon-phase-icon" class="text-indigo-300">
+                <i data-lucide="moon" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div>
+              <p id="moon-phase-name" class="text-lg font-bold font-heading text-white truncate">--</p>
+              <p id="moon-illumination" class="text-[11px] text-slate-400 mt-1 truncate">--% iluminada</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Card Especial: Nascer e Pôr do Sol -->
+        <div class="glass-card p-4 sm:p-5 flex flex-col justify-between">
+          <div class="flex items-center gap-2 mb-3 text-slate-300">
+            <i data-lucide="sunrise" class="w-4 h-4 text-amber-400"></i>
+            <h3 class="text-xs font-bold uppercase tracking-wider">Ciclo Solar (Hoje)</h3>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 divide-x divide-white/10">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                <i data-lucide="sunrise" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <span class="text-[11px] text-slate-400 block font-medium">Nascer do Sol</span>
+                <span id="sunrise-time" class="text-base font-bold text-white">--:--</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 pl-4">
+              <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <i data-lucide="sunset" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <span class="text-[11px] text-slate-400 block font-medium">Pôr do Sol</span>
+                <span id="sunset-time" class="text-base font-bold text-white">--:--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Seção Inferior de Largura Completa: Previsão dos Próximos 7 Dias (12 Colunas) -->
+      <div class="lg:col-span-12">
+        <div class="glass-panel p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <i data-lucide="calendar" class="w-4 h-4 text-sky-400"></i>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300">Previsão dos Próximos 7 Dias</h3>
+            </div>
+            <span class="text-xs text-slate-400">Temperaturas mínimas e máximas</span>
+          </div>
+
+          <!-- Lista de Dias da Semana -->
+          <div id="daily-forecast-list" class="flex flex-col">
+            <!-- Preenchido via JavaScript -->
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="mt-10 pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
+      <div class="flex items-center gap-2">
+        <span>Dados meteorológicos por</span>
+        <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline font-medium">
+          Open-Meteo API
+        </a>
+        <span>(Livre & Sem Chave)</span>
+      </div>
+      <div>
+        <span>Aura Clima © 2026 • Design Responsivo & Glassmorphism</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Modal de Detalhes do Dia Selecionado -->
+  <div id="day-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="glass-panel modal-content max-w-lg w-full p-6 relative">
+      <button id="btn-close-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white glass-pill p-1.5 transition-colors">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      
+      <div class="flex items-center gap-3.5 pb-4 border-b border-white/10">
+        <div id="modal-weather-icon" class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="sun" class="w-8 h-8 text-amber-300"></i>
+        </div>
+        <div>
+          <h3 id="modal-day-title" class="text-xl font-bold font-heading text-white">Quarta-feira</h3>
+          <p id="modal-day-date" class="text-xs text-slate-400">22 de Outubro • <span id="modal-weather-desc" class="text-sky-300 font-medium">Ensolarado</span></p>
+        </div>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3 text-sm" id="modal-details-grid">
+        <!-- Detalhes preenchidos via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts da Aplicação -->
+  <script src="js/weather-codes.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  
+  <script>
+    // Inicializa ícones Lucide no carregamento inicial
+    lucide.createIcons();
+  </script>
+</body>
+</html>
