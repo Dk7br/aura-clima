@@ -3,7 +3,7 @@
  * Cache de arquivos estáticos e suporte a uso offline
  */
 
-const CACHE_NAME = 'aura-clima-v2';
+const CACHE_NAME = 'aura-clima-v3';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const STATIC_ASSETS = [
   './js/weather-codes.js',
   './js/api.js',
   './js/app.js',
+  './js/route-planner.js',
   './manifest.json'
 ];
 
