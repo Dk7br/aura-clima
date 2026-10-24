@@ -31,34 +31,12 @@ const RoutePlanner = {
     // Alternância de Abas Principais (Clima Local vs Rota & Viagem)
     const tabWeather = document.getElementById('tab-btn-weather');
     const tabRoute = document.getElementById('tab-btn-route');
-    const viewWeather = document.getElementById('view-weather-dashboard');
-    const viewRoute = document.getElementById('view-route-dashboard');
 
-    if (tabWeather && tabRoute && viewWeather && viewRoute) {
-      tabWeather.addEventListener('click', () => {
-        tabWeather.classList.add('active', 'bg-sky-500/20', 'text-sky-300', 'border-sky-400/40');
-        tabWeather.classList.remove('text-slate-400', 'border-transparent');
-        tabRoute.classList.remove('active', 'bg-sky-500/20', 'text-sky-300', 'border-sky-400/40');
-        tabRoute.classList.add('text-slate-400', 'border-transparent');
-
-        viewWeather.classList.remove('hidden');
-        viewRoute.classList.add('hidden');
-      });
-
-      tabRoute.addEventListener('click', () => {
-        tabRoute.classList.add('active', 'bg-sky-500/20', 'text-sky-300', 'border-sky-400/40');
-        tabRoute.classList.remove('text-slate-400', 'border-transparent');
-        tabWeather.classList.remove('active', 'bg-sky-500/20', 'text-sky-300', 'border-sky-400/40');
-        tabWeather.classList.add('text-slate-400', 'border-transparent');
-
-        viewWeather.classList.add('hidden');
-        viewRoute.classList.remove('hidden');
-
-        // Garante que o container esteja renderizado antes de calcular o tamanho do Leaflet
-        setTimeout(() => {
-          this.initMap();
-        }, 150);
-      });
+    if (tabWeather) {
+      tabWeather.addEventListener('click', () => window.switchAppTab('weather'));
+    }
+    if (tabRoute) {
+      tabRoute.addEventListener('click', () => window.switchAppTab('route'));
     }
 
     // Autocomplete Origem
@@ -239,18 +217,17 @@ const RoutePlanner = {
   /**
    * Inicializa o mapa Leaflet com suporte a múltiplos provedores e sem necessidade de API key
    */
+  /**
+   * Inicializa o mapa Leaflet com suporte a múltiplos provedores e sem necessidade de API key
+   */
   initMap() {
     const mapContainer = document.getElementById('route-map');
     if (!mapContainer) return;
 
     if (typeof L === 'undefined') {
       console.warn('Leaflet ainda carregando...');
-      setTimeout(() => this.initMap(), 250);
+      setTimeout(() => this.initMap(), 200);
       return;
-    }
-
-    if (mapContainer._leaflet_id && !this.map) {
-      mapContainer._leaflet_id = null;
     }
 
     // Se a origem ainda não estiver preenchida, usa a cidade atual do Aura Clima ou IP
@@ -264,7 +241,7 @@ const RoutePlanner = {
       if (originInput) originInput.value = `${this.origin.name}, ${this.origin.state || this.origin.country}`;
     }
 
-    // Se o destino não estiver preenchido, sugere uma rota padrão para já traçar no mapa
+    // Se o destino não estiver preenchido, sugere uma rota padrão para traçar no mapa
     if (!this.destination) {
       if (this.origin.name.toLowerCase().includes('rio')) {
         this.destination = { name: 'São Paulo', state: 'São Paulo', country: 'Brasil', latitude: -23.5475, longitude: -46.6361 };
@@ -275,23 +252,52 @@ const RoutePlanner = {
       if (destInput) destInput.value = `${this.destination.name}, ${this.destination.state || this.destination.country}`;
     }
 
+    // Se o mapa já existir, apenas redimensiona e recalcula a rota
     if (this.map) {
       setTimeout(() => {
-        this.map.invalidateSize();
-        this.renderRouteOnMap();
+        if (this.map) {
+          this.map.invalidateSize();
+          if (this.routePolyline) {
+            this.map.fitBounds(this.routePolyline.getBounds(), { padding: [50, 50], maxZoom: 13 });
+          }
+        }
       }, 100);
       return;
     }
 
-    const initialLat = this.origin?.latitude || -23.5475;
-    const initialLon = this.origin?.longitude || -46.6361;
+    // Limpa qualquer container anterior se necessário
+    if (mapContainer._leaflet_id) {
+      mapContainer._leaflet_id = null;
+      mapContainer.innerHTML = '';
+    }
+
+    const initialLat = parseFloat(this.origin?.latitude) || -23.5475;
+    const initialLon = parseFloat(this.origin?.longitude) || -46.6361;
 
     this.map = L.map('route-map', {
       zoomControl: false,
       attributionControl: false
     }).setView([initialLat, initialLon], 7);
 
-    // Provedor 1: ESRI Dark Gray Canvas (Dark minimalista, 100% gratuito e SEM chave de API)
+    // Provedor 1: OpenStreetMap Standard (Ruas detalhadas, 100% gratuito e livre)
+    const osmStandard = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    });
+
+    // Provedor 2: Satélite Real de Alta Resolução (ESRI World Imagery)
+    const satelliteTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: '&copy; Esri, Maxar'
+    });
+
+    // Provedor 3: Rodovias & Trânsito (ESRI World Street Map)
+    const streetTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: '&copy; Esri'
+    });
+
+    // Provedor 4: Modo Noturno (ESRI Dark Gray Canvas)
     const esriDark = L.layerGroup([
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 16,
@@ -302,36 +308,26 @@ const RoutePlanner = {
       })
     ]);
 
-    // Provedor 2: OpenStreetMap Humanitarian (Ruas coloridas e detalhadas, 100% livre)
-    const osmHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      subdomains: 'abc',
-      attribution: '&copy; OpenStreetMap'
-    });
-
-    // Provedor 3: Satélite Real de Alta Resolução (ESRI World Imagery)
-    const satelliteTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 18,
-      attribution: '&copy; Esri, Maxar'
-    });
-
-    // Define o mapa escuro como padrão (Zero chaves, zero limites)
-    esriDark.addTo(this.map);
+    // Define o mapa padrão de ruas nítido
+    osmStandard.addTo(this.map);
 
     // Controle de Zoom
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-    // Controle de Camadas para o usuário alternar livremente no topo do mapa
+    // Controle de Camadas para o usuário alternar livremente
     L.control.layers({
-      '🌙 Modo Escuro': esriDark,
-      '🗺️ Mapa de Ruas': osmHot,
-      '🛰️ Satélite Real': satelliteTiles
+      '🗺️ Mapa de Ruas (OpenStreetMap)': osmStandard,
+      '🛰️ Satélite Real (ESRI)': satelliteTiles,
+      '🛣️ Rodovias & Ruas (ESRI)': streetTiles,
+      '🌙 Modo Noturno (Dark Canvas)': esriDark
     }, null, { position: 'topright' }).addTo(this.map);
 
     setTimeout(() => {
-      this.map.invalidateSize();
-      this.updateRouteIfReady();
-    }, 200);
+      if (this.map) {
+        this.map.invalidateSize();
+        this.updateRouteIfReady();
+      }
+    }, 150);
   },
 
   /**
@@ -340,25 +336,57 @@ const RoutePlanner = {
   async updateRouteIfReady() {
     if (!this.origin || !this.destination) return;
 
-    const distKm = this.calculateDistance(
-      this.origin.latitude, this.origin.longitude,
-      this.destination.latitude, this.destination.longitude
-    );
+    const lat1 = parseFloat(this.origin.latitude);
+    const lon1 = parseFloat(this.origin.longitude);
+    const lat2 = parseFloat(this.destination.latitude);
+    const lon2 = parseFloat(this.destination.longitude);
 
-    // Estimativa de distância rodoviária (~1.25x da linha reta) e tempo médio (80 km/h)
-    const roadDistKm = Math.round(distKm * 1.25);
-    const estHours = (roadDistKm / 80).toFixed(1);
-    const hoursPart = Math.floor(estHours);
-    const minsPart = Math.round((estHours - hoursPart) * 60);
-    const durationText = hoursPart > 0 ? `${hoursPart}h ${minsPart}min` : `${minsPart}min`;
+    if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) return;
+
+    const straightDistKm = Math.round(this.calculateDistance(lat1, lon1, lat2, lon2));
+    let roadDistKm = Math.round(straightDistKm * 1.25);
+    let estHours = (roadDistKm / 80).toFixed(1);
+    let hoursPart = Math.floor(estHours);
+    let minsPart = Math.round((estHours - hoursPart) * 60);
+    let durationText = hoursPart > 0 ? `${hoursPart}h ${minsPart}min` : `${minsPart}min`;
+    let routeCoordinates = [
+      [lat1, lon1],
+      [lat2, lon2]
+    ];
+
+    // Busca o trajeto rodoviário real via OSRM (100% gratuito e sem chave de API)
+    try {
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`;
+      const res = await fetch(osrmUrl);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          roadDistKm = Math.round(route.distance / 1000);
+          const totalMinutes = Math.round(route.duration / 60);
+          const hrs = Math.floor(totalMinutes / 60);
+          const mins = totalMinutes % 60;
+          durationText = hrs > 0 ? `${hrs}h ${mins}min` : `${mins}min`;
+
+          // GeoJSON [lon, lat] -> Leaflet [lat, lon]
+          routeCoordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+        }
+      }
+    } catch (e) {
+      console.warn('Usando estimativa geodésica de rota:', e);
+    }
 
     // Atualiza indicadores na UI
-    document.getElementById('route-total-distance').textContent = `${roadDistKm} km`;
-    document.getElementById('route-total-duration').textContent = `~ ${durationText}`;
-    document.getElementById('route-summary-panel').classList.remove('hidden');
+    const distEl = document.getElementById('route-total-distance');
+    const durEl = document.getElementById('route-total-duration');
+    const panelEl = document.getElementById('route-summary-panel');
 
-    // Atualiza o mapa
-    this.renderRouteOnMap();
+    if (distEl) distEl.textContent = `${roadDistKm} km`;
+    if (durEl) durEl.textContent = `~ ${durationText}`;
+    if (panelEl) panelEl.classList.remove('hidden');
+
+    // Desenha o traçado da rota no mapa
+    this.renderRouteOnMap(routeCoordinates);
 
     // Carrega previsões de clima (Origem e Destino durante os dias de estadia)
     await Promise.all([
@@ -368,15 +396,29 @@ const RoutePlanner = {
   },
 
   /**
-   * Desenha marcadores com SVGs nativos e linha de rota com brilho neon
+   * Desenha marcadores com SVGs nativos e linha de rota
    */
-  renderRouteOnMap() {
+  renderRouteOnMap(coordinates = null) {
     if (!this.map || !this.origin || !this.destination) return;
 
+    const lat1 = parseFloat(this.origin.latitude);
+    const lon1 = parseFloat(this.origin.longitude);
+    const lat2 = parseFloat(this.destination.latitude);
+    const lon2 = parseFloat(this.destination.longitude);
+
     // Remove camadas anteriores
-    if (this.originMarker) this.map.removeLayer(this.originMarker);
-    if (this.destMarker) this.map.removeLayer(this.destMarker);
-    if (this.routePolyline) this.map.removeLayer(this.routePolyline);
+    if (this.originMarker) {
+      this.map.removeLayer(this.originMarker);
+      this.originMarker = null;
+    }
+    if (this.destMarker) {
+      this.map.removeLayer(this.destMarker);
+      this.destMarker = null;
+    }
+    if (this.routePolyline) {
+      this.map.removeLayer(this.routePolyline);
+      this.routePolyline = null;
+    }
 
     // Ícone verde de Partida com SVG embutido
     const originIcon = L.divIcon({
@@ -402,35 +444,33 @@ const RoutePlanner = {
       iconAnchor: [17, 17]
     });
 
-    this.originMarker = L.marker([this.origin.latitude, this.origin.longitude], { icon: originIcon })
-      .bindPopup(`<div style="font-family:sans-serif;font-size:12px;padding:2px"><b>Partida:</b> ${this.origin.name}</div>`)
+    this.originMarker = L.marker([lat1, lon1], { icon: originIcon })
+      .bindPopup(`<div style="font-family:sans-serif;font-size:12px;padding:3px"><b>Partida:</b> ${this.origin.name}</div>`)
       .addTo(this.map);
 
-    this.destMarker = L.marker([this.destination.latitude, this.destination.longitude], { icon: destIcon })
-      .bindPopup(`<div style="font-family:sans-serif;font-size:12px;padding:2px"><b>Destino:</b> ${this.destination.name}</div>`)
+    this.destMarker = L.marker([lat2, lon2], { icon: destIcon })
+      .bindPopup(`<div style="font-family:sans-serif;font-size:12px;padding:3px"><b>Destino:</b> ${this.destination.name}</div>`)
       .addTo(this.map);
 
-    // Traçado da rota
-    const points = [
-      [this.origin.latitude, this.origin.longitude],
-      [this.destination.latitude, this.destination.longitude]
+    const points = coordinates || [
+      [lat1, lon1],
+      [lat2, lon2]
     ];
 
     this.routePolyline = L.polyline(points, {
-      color: '#38bdf8',
-      weight: 6,
-      opacity: 0.95
+      color: '#0284c7',
+      weight: 5,
+      opacity: 0.95,
+      lineCap: 'round',
+      lineJoin: 'round'
     }).addTo(this.map);
 
     setTimeout(() => {
       if (this.map && this.routePolyline) {
         this.map.invalidateSize();
-        this.map.fitBounds(this.routePolyline.getBounds(), { padding: [60, 60], maxZoom: 12 });
+        this.map.fitBounds(this.routePolyline.getBounds(), { padding: [50, 50], maxZoom: 13 });
       }
     }, 150);
-  },
-
-    lucide.createIcons();
   },
 
   /**
@@ -766,6 +806,68 @@ const RoutePlanner = {
               Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+  }
+};
+
+// Torna o RoutePlanner acessível globalmente no objeto window
+window.RoutePlanner = RoutePlanner;
+
+/**
+ * Alternador Global de Abas: Previsão Geral vs Rota & Viagem
+ */
+window.switchAppTab = function(tabName) {
+  const tabWeather = document.getElementById('tab-btn-weather');
+  const tabRoute = document.getElementById('tab-btn-route');
+  const viewWeather = document.getElementById('view-weather-dashboard');
+  const viewRoute = document.getElementById('view-route-dashboard');
+
+  if (!tabWeather || !tabRoute || !viewWeather || !viewRoute) return;
+
+  if (tabName === 'route') {
+    // Estilos do botão Rota (Ativo)
+    tabRoute.className = 'active px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all border border-sky-400/40 bg-sky-500/20 text-sky-300 shadow-md shadow-sky-500/10 cursor-pointer';
+    // Estilos do botão Clima (Inativo)
+    tabWeather.className = 'px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all border border-transparent text-slate-400 hover:text-white hover:bg-white/5 cursor-pointer';
+
+    // Transição de telas
+    viewWeather.classList.add('hidden');
+    viewRoute.classList.remove('hidden');
+
+    // Inicialização e recálculo de tamanho do Leaflet
+    if (typeof RoutePlanner !== 'undefined') {
+      RoutePlanner.initMap();
+      setTimeout(() => {
+        if (RoutePlanner.map) {
+          RoutePlanner.map.invalidateSize();
+          if (RoutePlanner.routePolyline) {
+            RoutePlanner.map.fitBounds(RoutePlanner.routePolyline.getBounds(), { padding: [50, 50], maxZoom: 13 });
+          }
+        }
+      }, 150);
+      setTimeout(() => {
+        if (RoutePlanner.map) {
+          RoutePlanner.map.invalidateSize();
+        }
+      }, 400);
+    }
+  } else {
+    // Estilos do botão Clima (Ativo)
+    tabWeather.className = 'active px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all border border-sky-400/40 bg-sky-500/20 text-sky-300 shadow-md shadow-sky-500/10 cursor-pointer';
+    // Estilos do botão Rota (Inativo)
+    tabRoute.className = 'px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all border border-transparent text-slate-400 hover:text-white hover:bg-white/5 cursor-pointer';
+
+    // Transição de telas
+    viewWeather.classList.remove('hidden');
+    viewRoute.classList.add('hidden');
+
+    // Atualiza canvas de partículas se necessário
+    if (typeof AmbientEngine !== 'undefined' && AmbientEngine.resize) {
+      AmbientEngine.resize();
+    }
+  }
+
+  if (window.lucide && lucide.createIcons) {
+    lucide.createIcons();
   }
 };
 

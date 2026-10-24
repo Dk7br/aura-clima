@@ -3,7 +3,7 @@
  * Cache de arquivos estáticos e suporte a uso offline
  */
 
-const CACHE_NAME = 'aura-clima-v4';
+const CACHE_NAME = 'aura-clima-v5';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -40,18 +40,32 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Para requisições da API de previsão, sempre tenta a rede primeiro
-  if (event.request.url.includes('open-meteo.com') || event.request.url.includes('bigdatacloud.net') || event.request.url.includes('geojs.io')) {
+  // Para requisições de mapas, rotas (OSRM) e APIs meteorológicas, sempre busca na rede
+  if (
+    event.request.url.includes('open-meteo.com') ||
+    event.request.url.includes('bigdatacloud.net') ||
+    event.request.url.includes('geojs.io') ||
+    event.request.url.includes('openstreetmap.org') ||
+    event.request.url.includes('arcgisonline.com') ||
+    event.request.url.includes('project-osrm.org') ||
+    event.request.url.includes('unpkg.com')
+  ) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))
     );
     return;
   }
 
-  // Para arquivos locais (HTML, CSS, JS), busca em cache com fallback para rede
+  // Para arquivos locais (HTML, CSS, JS), busca na rede primeiro para sempre ter a versão mais recente
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

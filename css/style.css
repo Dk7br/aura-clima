@@ -412,4 +412,49 @@ h1, h2, h3, .font-heading {
   justify-content: center;
 }
 
+/* Glassmorphism nos Controles do Mapa */
+.leaflet-control-layers {
+  background: rgba(15, 23, 42, 0.88) !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 0.875rem !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+}
+
+.leaflet-control-layers-expanded {
+  color: #f1f5f9 !important;
+}
+
+.leaflet-control-layers label {
+  cursor: pointer;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leaflet-bar {
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+}
+
+.leaflet-bar a {
+  background: rgba(15, 23, 42, 0.88) !important;
+  color: #38bdf8 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(8px) !important;
+  transition: all 0.2s ease !important;
+}
+
+.leaflet-bar a:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+  color: #ffffff !important;
+}
+
+
 

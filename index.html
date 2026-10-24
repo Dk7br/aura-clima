@@ -123,7 +123,8 @@
     <nav class="flex items-center gap-3 mb-6 border-b border-white/10 pb-3">
       <button
         id="tab-btn-weather"
-        class="active px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all border border-sky-400/40 bg-sky-500/20 text-sky-300 shadow-md shadow-sky-500/10"
+        onclick="switchAppTab('weather')"
+        class="active px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all border border-sky-400/40 bg-sky-500/20 text-sky-300 shadow-md shadow-sky-500/10 cursor-pointer"
       >
         <i data-lucide="cloud-sun" class="w-4 h-4"></i>
         <span>Previsão Geral</span>
@@ -131,7 +132,8 @@
 
       <button
         id="tab-btn-route"
-        class="px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all border border-transparent text-slate-400 hover:text-white hover:bg-white/5"
+        onclick="switchAppTab('route')"
+        class="px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all border border-transparent text-slate-400 hover:text-white hover:bg-white/5 cursor-pointer"
       >
         <i data-lucide="navigation" class="w-4 h-4 text-rose-400"></i>
         <span>Rota & Viagem com GPS</span>
