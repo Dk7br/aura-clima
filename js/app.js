@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateUnitToggleUI();
   renderFavoritesBar();
   loadInitialLocation();
+  initPixDonation();
   registerServiceWorker();
 });
 
@@ -1049,4 +1050,63 @@ function showToast(message) {
   toastTimeout = setTimeout(() => {
     toast.classList.add('translate-y-12', 'opacity-0', 'pointer-events-none');
   }, 3500);
+}
+
+/* ==========================================================================
+   Gestão de Doação e Apoio via PIX
+   ========================================================================== */
+const PIX_CONFIG = {
+  // Chave PIX do projeto (pode ser atualizada com sua chave quando desejar)
+  key: localStorage.getItem('aura_pix_key') || 'auraclima.pix@gmail.com',
+  name: 'Aura Clima'
+};
+
+function initPixDonation() {
+  const btnOpen = document.getElementById('btn-open-pix-modal');
+  const btnFooter = document.getElementById('btn-footer-pix');
+  const modal = document.getElementById('pix-modal');
+  const btnClose = document.getElementById('btn-close-pix-modal');
+  const btnCopy = document.getElementById('btn-copy-pix');
+  const inputKey = document.getElementById('pix-key-input');
+  const qrImg = document.getElementById('pix-qr-code-img');
+
+  if (!modal) return;
+
+  function openModal() {
+    if (inputKey) inputKey.value = PIX_CONFIG.key;
+    if (qrImg) {
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(PIX_CONFIG.key)}`;
+    }
+    modal.classList.remove('hidden');
+    if (window.lucide && lucide.createIcons) lucide.createIcons();
+  }
+
+  function closeModal() {
+    modal.classList.add('hidden');
+  }
+
+  if (btnOpen) btnOpen.addEventListener('click', openModal);
+  if (btnFooter) btnFooter.addEventListener('click', openModal);
+  if (btnClose) btnClose.addEventListener('click', closeModal);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  if (btnCopy && inputKey) {
+    btnCopy.addEventListener('click', () => {
+      navigator.clipboard.writeText(PIX_CONFIG.key).then(() => {
+        const copyLabel = document.getElementById('copy-pix-label');
+        if (copyLabel) copyLabel.textContent = 'Copiado! ✓';
+        showToast('Chave PIX copiada para a área de transferência! ❤️');
+        setTimeout(() => {
+          if (copyLabel) copyLabel.textContent = 'Copiar';
+        }, 2500);
+      }).catch(() => {
+        inputKey.select();
+        document.execCommand('copy');
+        showToast('Chave PIX copiada! ❤️');
+      });
+    });
+  }
 }

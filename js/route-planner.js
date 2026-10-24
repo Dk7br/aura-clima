@@ -385,6 +385,17 @@ const RoutePlanner = {
     if (durEl) durEl.textContent = `~ ${durationText}`;
     if (panelEl) panelEl.classList.remove('hidden');
 
+    // Atualiza Card de Afiliado de Hospedagem (Booking.com)
+    const affDestEl = document.getElementById('affiliate-dest-name');
+    const affBtnEl = document.getElementById('affiliate-hotel-btn');
+    if (affDestEl && this.destination) {
+      affDestEl.textContent = this.destination.name;
+    }
+    if (affBtnEl && this.destination) {
+      const destQuery = encodeURIComponent(this.destination.name + ', ' + (this.destination.state || this.destination.country));
+      affBtnEl.href = `https://www.booking.com/searchresults.html?ss=${destQuery}`;
+    }
+
     // Desenha o traçado da rota no mapa
     this.renderRouteOnMap(routeCoordinates);
 
