@@ -680,7 +680,7 @@ const RoutePlanner = {
     const nowISO = new Date().toISOString();
 
     const gpxData = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Aura Clima - https://dk7br.github.io/aura-clima/" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="Aura Clima - https://auraclima.github.io/" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata>
     <name>Rota: ${originName} para ${destName}</name>
     <desc>Trajeto gerado pelo Aura Clima com previsao meteorologica</desc>

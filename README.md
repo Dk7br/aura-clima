@@ -59,7 +59,7 @@ c:\Users\Duka\Documents\My Games\app-tempo\iniciar-app.bat
 Dê um duplo clique no arquivo `index.html` para abrir diretamente no Chrome, Edge, Firefox, Opera ou Brave.
 
 ### Opção 3: Online no GitHub Pages
-Acesse: **https://dk7br.github.io/aura-clima/**
+Acesse diretamente: **https://auraclima.github.io/**
 
 ---
 
