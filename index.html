@@ -836,27 +836,38 @@
           />
         </div>
 
-        <!-- Chave PIX e Botão Copiar -->
-        <div class="w-full">
-          <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5 text-left">
-            Chave PIX:
-          </label>
-          <div class="flex items-center gap-2">
-            <input
-              type="text"
-              id="pix-key-input"
-              readonly
-              value=""
-              class="w-full px-3.5 py-2.5 rounded-2xl glass-input text-xs text-slate-200 font-mono select-all focus:outline-none"
-            />
-            <button
-              id="btn-copy-pix"
-              class="px-4 py-2.5 rounded-2xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition-all flex-shrink-0 cursor-pointer"
-            >
-              <i data-lucide="copy" class="w-4 h-4"></i>
-              <span id="copy-pix-label">Copiar</span>
-            </button>
+        <!-- Chave PIX e Botões Copiar -->
+        <div class="w-full flex flex-col gap-2.5">
+          <div>
+            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1 text-left">
+              Chave Aleatória:
+            </label>
+            <div class="flex items-center gap-2">
+              <input
+                type="text"
+                id="pix-key-input"
+                readonly
+                value="ac3aa8bd-f28f-46a0-8bbc-a6095d954e41"
+                class="w-full px-3.5 py-2.5 rounded-2xl glass-input text-xs text-slate-200 font-mono select-all focus:outline-none"
+              />
+              <button
+                id="btn-copy-pix"
+                title="Copiar Chave Aleatória"
+                class="px-4 py-2.5 rounded-2xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition-all flex-shrink-0 cursor-pointer"
+              >
+                <i data-lucide="copy" class="w-4 h-4"></i>
+                <span id="copy-pix-label">Copiar</span>
+              </button>
+            </div>
           </div>
+
+          <button
+            id="btn-copy-pix-payload"
+            class="w-full py-2.5 rounded-2xl text-xs font-bold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <i data-lucide="qr-code" class="w-4 h-4"></i>
+            <span id="copy-payload-label">Copiar PIX Copia e Cola</span>
+          </button>
         </div>
 
         <p class="text-[11px] text-slate-400">

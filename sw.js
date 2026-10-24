@@ -3,7 +3,7 @@
  * Cache de arquivos estáticos e suporte a uso offline
  */
 
-const CACHE_NAME = 'aura-clima-v6';
+const CACHE_NAME = 'aura-clima-v7';
 const STATIC_ASSETS = [
   './',
   './index.html',

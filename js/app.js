@@ -1056,9 +1056,10 @@ function showToast(message) {
    Gestão de Doação e Apoio via PIX
    ========================================================================== */
 const PIX_CONFIG = {
-  // Chave PIX do projeto (pode ser atualizada com sua chave quando desejar)
-  key: localStorage.getItem('aura_pix_key') || 'auraclima.pix@gmail.com',
-  name: 'Aura Clima'
+  key: 'ac3aa8bd-f28f-46a0-8bbc-a6095d954e41',
+  name: 'AURA CLIMA',
+  city: 'BRASILIA',
+  payload: '00020126580014br.gov.bcb.pix0136ac3aa8bd-f28f-46a0-8bbc-a6095d954e415204000053039865802BR5910AURA CLIMA6008BRASILIA62070503***63046509'
 };
 
 function initPixDonation() {
@@ -1066,7 +1067,8 @@ function initPixDonation() {
   const btnFooter = document.getElementById('btn-footer-pix');
   const modal = document.getElementById('pix-modal');
   const btnClose = document.getElementById('btn-close-pix-modal');
-  const btnCopy = document.getElementById('btn-copy-pix');
+  const btnCopyKey = document.getElementById('btn-copy-pix');
+  const btnCopyPayload = document.getElementById('btn-copy-pix-payload');
   const inputKey = document.getElementById('pix-key-input');
   const qrImg = document.getElementById('pix-qr-code-img');
 
@@ -1075,7 +1077,8 @@ function initPixDonation() {
   function openModal() {
     if (inputKey) inputKey.value = PIX_CONFIG.key;
     if (qrImg) {
-      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(PIX_CONFIG.key)}`;
+      // Gera o QR Code com o payload oficial BRCode (reconhecido por qualquer app de banco)
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(PIX_CONFIG.payload)}`;
     }
     modal.classList.remove('hidden');
     if (window.lucide && lucide.createIcons) lucide.createIcons();
@@ -1093,8 +1096,9 @@ function initPixDonation() {
     if (e.target === modal) closeModal();
   });
 
-  if (btnCopy && inputKey) {
-    btnCopy.addEventListener('click', () => {
+  // Copia a Chave Aleatória (UUID)
+  if (btnCopyKey) {
+    btnCopyKey.addEventListener('click', () => {
       navigator.clipboard.writeText(PIX_CONFIG.key).then(() => {
         const copyLabel = document.getElementById('copy-pix-label');
         if (copyLabel) copyLabel.textContent = 'Copiado! ✓';
@@ -1103,9 +1107,27 @@ function initPixDonation() {
           if (copyLabel) copyLabel.textContent = 'Copiar';
         }, 2500);
       }).catch(() => {
-        inputKey.select();
-        document.execCommand('copy');
+        if (inputKey) {
+          inputKey.select();
+          document.execCommand('copy');
+        }
         showToast('Chave PIX copiada! ❤️');
+      });
+    });
+  }
+
+  // Copia o PIX Copia e Cola Oficial
+  if (btnCopyPayload) {
+    btnCopyPayload.addEventListener('click', () => {
+      navigator.clipboard.writeText(PIX_CONFIG.payload).then(() => {
+        const payloadLabel = document.getElementById('copy-payload-label');
+        if (payloadLabel) payloadLabel.textContent = 'Copia e Cola Copiado! ✓';
+        showToast('Código PIX Copia e Cola copiado! Abra o app do seu banco e cole. ❤️');
+        setTimeout(() => {
+          if (payloadLabel) payloadLabel.textContent = 'Copiar PIX Copia e Cola';
+        }, 2500);
+      }).catch(() => {
+        showToast('Código PIX Copia e Cola copiado! ❤️');
       });
     });
   }
