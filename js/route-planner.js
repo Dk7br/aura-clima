@@ -291,32 +291,41 @@ const RoutePlanner = {
       attributionControl: false
     }).setView([initialLat, initialLon], 7);
 
-    // Provedor 1: CartoDB Dark Matter (tema escuro perfeito para o app)
-    const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Provedor 1: ESRI Dark Gray Canvas (Dark minimalista, 100% gratuito e SEM chave de API)
+    const esriDark = L.layerGroup([
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16,
+        attribution: '&copy; Esri'
+      }),
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16
+      })
+    ]);
+
+    // Provedor 2: OpenStreetMap Humanitarian (Ruas coloridas e detalhadas, 100% livre)
+    const osmHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      subdomains: 'abcd'
+      subdomains: 'abc',
+      attribution: '&copy; OpenStreetMap'
     });
 
-    // Provedor 2: OpenStreetMap Padrão
-    const osmTiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
-    });
-
-    // Provedor 3: Satélite de Alta Resolução (ESRI)
+    // Provedor 3: Satélite Real de Alta Resolução (ESRI World Imagery)
     const satelliteTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 18
+      maxZoom: 18,
+      attribution: '&copy; Esri, Maxar'
     });
 
-    darkTiles.addTo(this.map);
+    // Define o mapa escuro como padrão (Zero chaves, zero limites)
+    esriDark.addTo(this.map);
 
     // Controle de Zoom
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-    // Controle de Camadas para o usuário alternar livremente
+    // Controle de Camadas para o usuário alternar livremente no topo do mapa
     L.control.layers({
-      '🌙 Escuro': darkTiles,
-      '🗺️ Ruas': osmTiles,
-      '🛰️ Satélite': satelliteTiles
+      '🌙 Modo Escuro': esriDark,
+      '🗺️ Mapa de Ruas': osmHot,
+      '🛰️ Satélite Real': satelliteTiles
     }, null, { position: 'topright' }).addTo(this.map);
 
     setTimeout(() => {
