@@ -43,6 +43,10 @@
   <!-- Estilos Customizados & Glassmorphism -->
   <link rel="stylesheet" href="css/style.css" />
   
+  <!-- Monetização por Visualização (Google AdSense CPM / Impression Network) -->
+  <!-- Descomente e insira o seu ID de cliente (ca-pub-XXXXXXXXXXXX) quando desejar -->
+  <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-SEU_ID_AQUI" crossorigin="anonymous"></script> -->
+
   <!-- Suporte a PWA -->
   <link rel="icon" type="image/svg+xml" href="icon.svg" />
   <link rel="manifest" href="manifest.json" />
@@ -874,6 +878,20 @@
         <p class="text-[11px] text-slate-400">
           Muito obrigado pelo carinho e apoio! ❤️
         </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner de Monetização por Visualização (CPM Sticky Banner - Alta Taxa de Impressão) -->
+  <div id="cpm-sticky-banner" class="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-md border-t border-white/10 px-4 py-2 transition-all duration-300 flex items-center justify-center shadow-2xl">
+    <button id="btn-close-cpm-banner" onclick="closeCpmBanner()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white glass-pill p-1 transition-colors cursor-pointer text-xs flex items-center gap-1" title="Fechar anúncio">
+      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+      <span class="text-[10px] hidden sm:inline">Fechar</span>
+    </button>
+    <div class="flex items-center gap-3 text-center max-w-2xl px-8">
+      <span class="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">Monetização CPM</span>
+      <div id="cpm-ad-slot-sticky" class="text-xs text-slate-300 font-medium truncate">
+        <span>Anúncio por Impressão (Remuneração por Visualização)</span>
       </div>
     </div>
   </div>
