@@ -1062,6 +1062,41 @@ const PIX_CONFIG = {
   payload: '00020126580014br.gov.bcb.pix0136ac3aa8bd-f28f-46a0-8bbc-a6095d954e415204000053039865802BR5910AURA CLIMA6008BRASILIA62070503***63046509'
 };
 
+/**
+ * Abre o Modal de Apoio via PIX
+ */
+window.openPixModal = function() {
+  const modal = document.getElementById('pix-modal');
+  const inputKey = document.getElementById('pix-key-input');
+  const qrImg = document.getElementById('pix-qr-code-img');
+
+  if (!modal) return;
+
+  if (inputKey) inputKey.value = PIX_CONFIG.key;
+  if (qrImg && (!qrImg.src || !qrImg.src.includes('create-qr-code'))) {
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(PIX_CONFIG.payload)}`;
+  }
+
+  // Remove hidden e ativa visibilidade e animacao imediatamente
+  modal.classList.remove('hidden');
+  modal.classList.add('active');
+
+  if (window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+/**
+ * Fecha o Modal de Apoio via PIX
+ */
+window.closePixModal = function() {
+  const modal = document.getElementById('pix-modal');
+  if (!modal) return;
+
+  modal.classList.remove('active');
+  setTimeout(() => {
+    modal.classList.add('hidden');
+  }, 250);
+};
+
 function initPixDonation() {
   const btnOpen = document.getElementById('btn-open-pix-modal');
   const btnFooter = document.getElementById('btn-footer-pix');
@@ -1070,30 +1105,15 @@ function initPixDonation() {
   const btnCopyKey = document.getElementById('btn-copy-pix');
   const btnCopyPayload = document.getElementById('btn-copy-pix-payload');
   const inputKey = document.getElementById('pix-key-input');
-  const qrImg = document.getElementById('pix-qr-code-img');
 
   if (!modal) return;
 
-  function openModal() {
-    if (inputKey) inputKey.value = PIX_CONFIG.key;
-    if (qrImg) {
-      // Gera o QR Code com o payload oficial BRCode (reconhecido por qualquer app de banco)
-      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(PIX_CONFIG.payload)}`;
-    }
-    modal.classList.remove('hidden');
-    if (window.lucide && lucide.createIcons) lucide.createIcons();
-  }
-
-  function closeModal() {
-    modal.classList.add('hidden');
-  }
-
-  if (btnOpen) btnOpen.addEventListener('click', openModal);
-  if (btnFooter) btnFooter.addEventListener('click', openModal);
-  if (btnClose) btnClose.addEventListener('click', closeModal);
+  if (btnOpen) btnOpen.addEventListener('click', () => window.openPixModal());
+  if (btnFooter) btnFooter.addEventListener('click', () => window.openPixModal());
+  if (btnClose) btnClose.addEventListener('click', () => window.closePixModal());
 
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
+    if (e.target === modal) window.closePixModal();
   });
 
   // Copia a Chave Aleatória (UUID)

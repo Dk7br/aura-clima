@@ -119,6 +119,7 @@
         <!-- Botão Apoiar com PIX -->
         <button
           id="btn-open-pix-modal"
+          onclick="openPixModal()"
           title="Apoiar o projeto Aura Clima"
           class="glass-card glass-card-hover px-3 py-2.5 rounded-2xl text-xs font-bold text-rose-300 hover:text-white flex items-center gap-1.5 flex-shrink-0 border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/25 transition-all cursor-pointer"
         >
@@ -770,7 +771,7 @@
         </a>
       </div>
       <div class="flex items-center gap-4">
-        <button id="btn-footer-pix" class="text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-1 font-semibold cursor-pointer">
+        <button id="btn-footer-pix" onclick="openPixModal()" class="text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-1 font-semibold cursor-pointer">
           <i data-lucide="heart" class="w-3.5 h-3.5 fill-rose-400/40"></i>
           <span>Apoie via PIX</span>
         </button>
@@ -807,7 +808,7 @@
   <!-- Modal de Apoio via PIX -->
   <div id="pix-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
     <div class="glass-panel modal-content max-w-md w-full p-6 sm:p-7 relative border border-rose-500/30 shadow-2xl">
-      <button id="btn-close-pix-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white glass-pill p-1.5 transition-colors cursor-pointer">
+      <button id="btn-close-pix-modal" onclick="closePixModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white glass-pill p-1.5 transition-colors cursor-pointer">
         <i data-lucide="x" class="w-5 h-5"></i>
       </button>
 
