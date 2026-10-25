@@ -456,5 +456,35 @@ h1, h2, h3, .font-heading {
   color: #ffffff !important;
 }
 
+/* --------------------------------------------------------------------------
+   Banner Fixo Inferior Monetizado (100% Limpo, Sem Popups)
+   -------------------------------------------------------------------------- */
+#fixed-monetized-banner {
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6);
+  animation: slideUpBanner 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUpBanner {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+body.has-fixed-banner {
+  padding-bottom: 95px !important;
+}
+
+@media (min-width: 640px) {
+  body.has-fixed-banner {
+    padding-bottom: 105px !important;
+  }
+}
+
+
 
 

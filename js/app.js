@@ -151,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderFavoritesBar();
   loadInitialLocation();
   initPixDonation();
+  initFixedMonetizedBanner();
   registerServiceWorker();
 });
 
@@ -1152,3 +1153,28 @@ function initPixDonation() {
     });
   }
 }
+
+/* ==========================================================================
+   Gestão do Banner Fixo Inferior Monetizado (Sem Spam)
+   ========================================================================== */
+function initFixedMonetizedBanner() {
+  const banner = document.getElementById('fixed-monetized-banner');
+  if (banner) {
+    document.body.classList.add('has-fixed-banner');
+  }
+}
+
+/**
+ * Fecha o Banner Fixo Inferior Monetizado
+ */
+window.closeFixedMonetizedBanner = function() {
+  const banner = document.getElementById('fixed-monetized-banner');
+  if (banner) {
+    banner.style.transform = 'translateY(100%)';
+    banner.style.opacity = '0';
+    document.body.classList.remove('has-fixed-banner');
+    setTimeout(() => {
+      banner.style.display = 'none';
+    }, 350);
+  }
+};
