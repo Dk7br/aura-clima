@@ -16,7 +16,7 @@ try {
  * Service Worker para Aura Clima
  * Cache de arquivos estáticos e suporte a uso offline (PWA)
  */
-const CACHE_NAME = 'aura-clima-v11';
+const CACHE_NAME = 'aura-clima-v12';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -62,6 +62,7 @@ self.addEventListener('fetch', (event) => {
     event.request.url.includes('arcgisonline.com') ||
     event.request.url.includes('project-osrm.org') ||
     event.request.url.includes('unpkg.com') ||
+    event.request.url.includes('quge5.com') ||
     event.request.url.includes('5gvci.com') ||
     event.request.url.includes('monetag.com') ||
     event.request.url.includes('alwingulla.com') ||
