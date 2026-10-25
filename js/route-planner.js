@@ -22,6 +22,10 @@ const RoutePlanner = {
   init() {
     this.setupEventListeners();
     this.initDatePickers();
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('tab') === 'route') {
+      this.handleUrlParams(urlParams);
+    }
   },
 
   /**
@@ -92,6 +96,12 @@ const RoutePlanner = {
     const btnGpx = document.getElementById('btn-download-gpx');
     if (btnGpx) {
       btnGpx.addEventListener('click', () => this.downloadGPX());
+    }
+
+    // Botão Compartilhar Rota por Link
+    const btnShareRoute = document.getElementById('btn-share-route');
+    if (btnShareRoute) {
+      btnShareRoute.addEventListener('click', () => this.shareRoute());
     }
 
     // Botão Modo Viagem em Tempo Real
@@ -802,6 +812,76 @@ const RoutePlanner = {
       } else {
         this.userMarker.setLatLng([latitude, longitude]);
       }
+    }
+  },
+
+  /**
+   * Compartilha a rota atual abrindo o modal de compartilhamento
+   */
+  shareRoute() {
+    if (!this.destination) {
+      showToast('Defina ao menos a cidade de destino para compartilhar a rota.');
+      return;
+    }
+    if (typeof window.openShareModal === 'function') {
+      window.openShareModal('route');
+    }
+  },
+
+  /**
+   * Lê parâmetros da URL e preenche automaticamente origem, destino e estadia
+   */
+  handleUrlParams(urlParams) {
+    if (!urlParams) return;
+    const oName = urlParams.get('o');
+    const olat = urlParams.get('olat');
+    const olon = urlParams.get('olon');
+    const dName = urlParams.get('d');
+    const dlat = urlParams.get('dlat');
+    const dlon = urlParams.get('dlon');
+    const days = urlParams.get('days');
+
+    if (days) {
+      this.stayDays = parseInt(days, 10) || 3;
+      const staySelect = document.getElementById('route-stay-days');
+      if (staySelect) staySelect.value = String(this.stayDays);
+    }
+
+    if (oName && olat && olon) {
+      this.origin = {
+        name: oName,
+        latitude: parseFloat(olat),
+        longitude: parseFloat(olon)
+      };
+      const oInput = document.getElementById('route-origin-input');
+      if (oInput) oInput.value = oName;
+    }
+
+    if (dName && dlat && dlon) {
+      this.destination = {
+        name: dName,
+        latitude: parseFloat(dlat),
+        longitude: parseFloat(dlon)
+      };
+      const dInput = document.getElementById('route-dest-input');
+      if (dInput) dInput.value = dName;
+    }
+
+    if (this.origin && this.destination) {
+      setTimeout(() => {
+        this.updateRouteIfReady();
+        showToast(`Rota de ${this.origin.name} para ${this.destination.name} carregada!`);
+      }, 350);
+    } else if (dName && (!dlat || !dlon)) {
+      API.searchCities(dName).then(cities => {
+        if (cities && cities.length > 0) {
+          this.destination = cities[0];
+          const dInput = document.getElementById('route-dest-input');
+          if (dInput) dInput.value = cities[0].name;
+          this.updateRouteIfReady();
+          showToast(`Rota para ${cities[0].name} carregada!`);
+        }
+      }).catch(err => console.warn('Erro ao buscar destino da URL:', err));
     }
   },
 

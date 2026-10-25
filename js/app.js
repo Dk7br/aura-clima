@@ -149,9 +149,13 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   updateUnitToggleUI();
   renderFavoritesBar();
-  loadInitialLocation();
+  const handledByUrl = checkUrlParametersOnLoad();
+  if (!handledByUrl) {
+    loadInitialLocation();
+  }
   initPixDonation();
   initFixedMonetizedBanner();
+  initShareManager();
   registerServiceWorker();
 });
 
@@ -1178,3 +1182,305 @@ window.closeFixedMonetizedBanner = function() {
     }, 350);
   }
 };
+
+/* ==========================================================================
+   Gestão de Compartilhamento (Redes Sociais & Link Direto de Rota ou Página)
+   ========================================================================== */
+
+/**
+ * Retorna os dados para compartilhamento da previsão do tempo atual
+ */
+function getPageShareData() {
+  const city = AppState.currentCity;
+  const baseUrl = window.location.origin + window.location.pathname;
+  let url = baseUrl;
+  let title = 'Aura Clima | Meteorologia em Tempo Real';
+  let text = 'Confira a previsão do tempo em tempo real com mapas e precisão no Aura Clima!';
+  let previewTitle = 'Aura Clima - Meteorologia';
+  let previewDesc = 'Previsão do tempo precisa e em tempo real';
+
+  if (city) {
+    const lat = city.latitude;
+    const lon = city.longitude;
+    const name = city.name;
+    const stateOrCountry = city.state || city.country || '';
+    const locationStr = stateOrCountry ? `${name}, ${stateOrCountry}` : name;
+    const temp = AppState.weatherData?.current?.temperature_2m;
+    const tempText = (temp !== undefined && temp !== null) ? ` (${Math.round(temp)}°C)` : '';
+
+    url = `${baseUrl}?cidade=${encodeURIComponent(name)}&lat=${lat}&lon=${lon}`;
+    title = `Aura Clima - Previsão para ${name}`;
+    text = `☀️ Previsão do tempo para ${locationStr}${tempText} no Aura Clima:`;
+    previewTitle = `Clima em ${name}${tempText}`;
+    previewDesc = `Temperatura atual, alertas e previsão completa para ${name}`;
+  }
+
+  return {
+    title,
+    text,
+    url,
+    previewTitle,
+    previewDesc,
+    icon: 'cloud-sun'
+  };
+}
+
+/**
+ * Retorna os dados para compartilhamento da rota de viagem
+ */
+function getRouteShareData() {
+  if (typeof RoutePlanner === 'undefined') return getPageShareData();
+
+  const origin = RoutePlanner.origin;
+  const dest = RoutePlanner.destination;
+  const stayDays = RoutePlanner.stayDays || 3;
+  const baseUrl = window.location.origin + window.location.pathname;
+
+  if (!dest) {
+    return null;
+  }
+
+  const oName = origin?.name || 'Origem';
+  const dName = dest.name;
+  const olat = origin?.latitude ?? '';
+  const olon = origin?.longitude ?? '';
+  const dlat = dest.latitude;
+  const dlon = dest.longitude;
+
+  const params = new URLSearchParams();
+  params.set('tab', 'route');
+  if (origin && olat !== '' && olon !== '') {
+    params.set('o', oName);
+    params.set('olat', olat);
+    params.set('olon', olon);
+  }
+  params.set('d', dName);
+  params.set('dlat', dlat);
+  params.set('dlon', dlon);
+  params.set('days', String(stayDays));
+
+  const url = `${baseUrl}?${params.toString()}`;
+  const title = `Rota de ${oName} para ${dName} | Aura Clima`;
+  const text = `🚗 Veja a rota de ${oName} para ${dName} no Aura Clima! Distância, condições climáticas e previsão para ${stayDays} dias:`;
+
+  return {
+    title,
+    text,
+    url,
+    previewTitle: `${oName} ➔ ${dName}`,
+    previewDesc: `Rota com previsão de ${stayDays} dias no destino e traçado GPS`,
+    icon: 'navigation'
+  };
+}
+
+/**
+ * Abre o modal de compartilhamento
+ * @param {'auto'|'page'|'route'} type - Tipo de compartilhamento
+ */
+window.openShareModal = function(type = 'auto') {
+  const modal = document.getElementById('share-modal');
+  if (!modal) return;
+
+  // Decide se compartilha rota ou página
+  let isRoute = false;
+  if (type === 'route') {
+    isRoute = true;
+  } else if (type === 'auto') {
+    const viewRoute = document.getElementById('view-route-dashboard');
+    if (viewRoute && !viewRoute.classList.contains('hidden') && typeof RoutePlanner !== 'undefined' && RoutePlanner.destination) {
+      isRoute = true;
+    }
+  }
+
+  let data = null;
+  if (isRoute) {
+    data = getRouteShareData();
+    if (!data) {
+      showToast('Defina ao menos a cidade de destino para compartilhar a rota.');
+      return;
+    }
+  } else {
+    data = getPageShareData();
+  }
+
+  // Preenche títulos do modal
+  const titleEl = document.getElementById('share-modal-title');
+  const subEl = document.getElementById('share-modal-subtitle');
+  const prevTitle = document.getElementById('share-preview-title');
+  const prevDesc = document.getElementById('share-preview-desc');
+  const prevIcon = document.getElementById('share-preview-icon');
+  const linkInput = document.getElementById('share-link-input');
+
+  if (titleEl) titleEl.textContent = isRoute ? 'Compartilhar Rota & Viagem' : 'Compartilhar Aura Clima';
+  if (subEl) subEl.textContent = isRoute ? 'Envie a rota com clima do trajeto e do destino' : 'Envie a previsão meteorológica para quem você quiser';
+  if (prevTitle) prevTitle.textContent = data.previewTitle;
+  if (prevDesc) prevDesc.textContent = data.previewDesc;
+  if (prevIcon) prevIcon.innerHTML = `<i data-lucide="${data.icon}" class="w-5 h-5"></i>`;
+  if (linkInput) linkInput.value = data.url;
+
+  // Configura links das redes sociais
+  const whatsappBtn = document.getElementById('share-btn-whatsapp');
+  const telegramBtn = document.getElementById('share-btn-telegram');
+  const twitterBtn = document.getElementById('share-btn-twitter');
+  const facebookBtn = document.getElementById('share-btn-facebook');
+  const nativeBtn = document.getElementById('btn-native-share');
+
+  const shareTextWithUrl = `${data.text}\n${data.url}`;
+
+  if (whatsappBtn) {
+    whatsappBtn.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareTextWithUrl)}`;
+  }
+  if (telegramBtn) {
+    telegramBtn.href = `https://t.me/share/url?url=${encodeURIComponent(data.url)}&text=${encodeURIComponent(data.text)}`;
+  }
+  if (twitterBtn) {
+    twitterBtn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(data.text)}&url=${encodeURIComponent(data.url)}`;
+  }
+  if (facebookBtn) {
+    facebookBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(data.url)}`;
+  }
+
+  // Botão Nativo Web Share (Dispositivos Móveis e Desktop)
+  if (nativeBtn) {
+    nativeBtn.onclick = async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: data.title,
+            text: data.text,
+            url: data.url
+          });
+        } catch (e) {
+          // Usuário cancelou
+        }
+      } else {
+        copyShareLink();
+      }
+    };
+  }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('active');
+
+  if (window.lucide && lucide.createIcons) lucide.createIcons();
+};
+
+/**
+ * Fecha o modal de compartilhamento
+ */
+window.closeShareModal = function() {
+  const modal = document.getElementById('share-modal');
+  if (!modal) return;
+
+  modal.classList.remove('active');
+  setTimeout(() => {
+    modal.classList.add('hidden');
+  }, 250);
+};
+
+/**
+ * Copia o link direto do input de compartilhamento
+ */
+function copyShareLink() {
+  const input = document.getElementById('share-link-input');
+  const label = document.getElementById('copy-share-label');
+  if (!input) return;
+
+  const link = input.value;
+  if (!link) return;
+
+  navigator.clipboard.writeText(link).then(() => {
+    if (label) label.textContent = 'Copiado! ✓';
+    showToast('Link copiado para a área de transferência! 📋');
+    setTimeout(() => {
+      if (label) label.textContent = 'Copiar';
+    }, 2500);
+  }).catch(() => {
+    input.select();
+    document.execCommand('copy');
+    if (label) label.textContent = 'Copiado! ✓';
+    showToast('Link copiado! 📋');
+    setTimeout(() => {
+      if (label) label.textContent = 'Copiar';
+    }, 2500);
+  });
+}
+
+function initShareManager() {
+  const modal = document.getElementById('share-modal');
+  const btnClose = document.getElementById('btn-close-share-modal');
+  const btnCopy = document.getElementById('btn-copy-share-link');
+  const input = document.getElementById('share-link-input');
+
+  if (btnClose) btnClose.addEventListener('click', () => window.closeShareModal());
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) window.closeShareModal();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
+      window.closeShareModal();
+    }
+  });
+
+  if (btnCopy) {
+    btnCopy.addEventListener('click', () => copyShareLink());
+  }
+
+  if (input) {
+    input.addEventListener('click', () => input.select());
+  }
+}
+
+/**
+ * Verifica parâmetros de URL ao carregar a página para abrir rota ou cidade específica compartilhada
+ */
+function checkUrlParametersOnLoad() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    const cityParam = urlParams.get('cidade') || urlParams.get('city');
+    const latParam = urlParams.get('lat');
+    const lonParam = urlParams.get('lon');
+
+    // 1. Link de Rota Compartilhada
+    if (tab === 'route') {
+      window.switchAppTab('route');
+      if (typeof RoutePlanner !== 'undefined' && RoutePlanner.handleUrlParams) {
+        RoutePlanner.handleUrlParams(urlParams);
+      }
+      return true;
+    }
+
+    // 2. Link de Cidade Específica Compartilhada
+    if (cityParam) {
+      if (latParam && lonParam) {
+        const city = {
+          name: cityParam,
+          latitude: parseFloat(latParam),
+          longitude: parseFloat(lonParam),
+          country: 'Brasil'
+        };
+        loadCityWeather(city);
+        showToast(`Previsão de ${cityParam} carregada via link!`);
+        return true;
+      } else {
+        API.searchCities(cityParam).then(cities => {
+          if (cities && cities.length > 0) {
+            loadCityWeather(cities[0]);
+            showToast(`Previsão de ${cities[0].name} carregada via link!`);
+          } else {
+            loadInitialLocation();
+          }
+        }).catch(() => loadInitialLocation());
+        return true;
+      }
+    }
+  } catch (e) {
+    console.warn('Erro ao processar parâmetros da URL:', e);
+  }
+
+  return false;
+}
