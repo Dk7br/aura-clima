@@ -1,22 +1,9 @@
 /**
- * Monetag Web Push & Impression Service Worker (Zone: 12117252)
- */
-self.options = {
-    "domain": "5gvci.com",
-    "zoneId": 12117252
-};
-self.lary = "";
-try {
-  importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw');
-} catch (e) {
-  console.warn('Monetag service worker load error:', e);
-}
-
-/**
  * Service Worker para Aura Clima
  * Cache de arquivos estáticos e suporte a uso offline (PWA)
  */
-const CACHE_NAME = 'aura-clima-v12';
+
+const CACHE_NAME = 'aura-clima-v13';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -53,7 +40,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Para requisições de mapas, rotas (OSRM), redes de anúncios CPM (Monetag / 5gvci) e APIs meteorológicas, sempre busca na rede
+  // Para requisições de mapas (OpenStreetMap, ESRI), rotas (OSRM) e APIs meteorológicas, sempre busca na rede
   if (
     event.request.url.includes('open-meteo.com') ||
     event.request.url.includes('bigdatacloud.net') ||
@@ -61,13 +48,7 @@ self.addEventListener('fetch', (event) => {
     event.request.url.includes('openstreetmap.org') ||
     event.request.url.includes('arcgisonline.com') ||
     event.request.url.includes('project-osrm.org') ||
-    event.request.url.includes('unpkg.com') ||
-    event.request.url.includes('quge5.com') ||
-    event.request.url.includes('5gvci.com') ||
-    event.request.url.includes('monetag.com') ||
-    event.request.url.includes('alwingulla.com') ||
-    event.request.url.includes('adsterra.com') ||
-    event.request.url.includes('topcreativeformat.com')
+    event.request.url.includes('unpkg.com')
   ) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))

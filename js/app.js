@@ -1152,16 +1152,3 @@ function initPixDonation() {
     });
   }
 }
-
-/**
- * Fecha o Banner de Anúncio CPM Fixo
- */
-window.closeCpmBanner = function() {
-  const banner = document.getElementById('cpm-sticky-banner');
-  if (banner) {
-    banner.style.transform = 'translateY(100%)';
-    setTimeout(() => {
-      banner.style.display = 'none';
-    }, 300);
-  }
-};
